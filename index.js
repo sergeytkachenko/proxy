@@ -67,7 +67,7 @@ function replaceCookie(res, domain) {
 	}
 }
 
-app.use(express.static('static'));
+app.use('/proxy-static', express.static('static'));
 
 app.get(/.*(\.css|\.js|\.png|\.jpg|\.jpeg|\.gif)$/, (clientRequest, clientResponse) => {
 	console.log(`RESOURCES EMPTY`);
