@@ -9,19 +9,23 @@ const HtmlHelper = require('./html-helper');
 
 const config = require('./config');
 const proxyUrl = config.proxyUrl;
+const domain = config.domain;
+
+let refererDomain = null;
+let proxyDomain = config.proxyDomain;
 
 function errorHandler (err, req, res) {
 	res.status(500);
 	res.end(err.message);
 }
 
-function getTarget(clietRequest) {
-	const url = clietRequest.url;
+function getTarget(request) {
+	const url = request.url;
 	const targetPattern = /.*\/(https?:\/\/[^/]+\/?).*/i;
 	if (targetPattern.test(url)) {
 		return url.replace(targetPattern, "$1");
 	}
-	const referer = clietRequest.headers.referer;
+	const referer = request.headers.referer;
 	return referer.replace(targetPattern, "$1");
 }
 
@@ -32,6 +36,32 @@ function getEncoding(headers) {
 		return 'utf-8';
 	}
 	return contentType.includes('charset=') && contentType.replace(/^(.*charset=)([a-z0-9-]+)$/i, '$2') || 'utf-8';
+}
+
+function getReferer(headers) {
+	headers = HeaderHelper.toLower(headers);
+	let referer = headers.referer;
+	return referer.replace(/^(https?:\/\/)([^/]+).*$/, '$2');
+}
+
+function deleteHeaders(res) {
+	delete res.headers['content-length'];
+	delete res.headers['alt-svc'];
+	delete res.headers['x-xss-protection'];
+	delete res.headers['vary'];
+}
+
+function replaceCookie(res, domain) {
+	const cookies = res.headers['set-cookie'];
+	if (cookies && cookies.length) {
+		for (let i = 0; i < cookies.length; i++) {
+			let cookie = cookies[i];
+			cookie = cookie.replace(/^(.*domain=)([^;]+)(;?.*)$/, `$1${domain}$3`);
+			cookie = cookie.replace(/secure;?/, '');
+			cookies[i] = cookie;
+		}
+		res.headers['set-cookie'] = cookies;
+	}
 }
 
 app.use(express.static('static'));
@@ -46,10 +76,12 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 	const proxy = httpProxy.createProxyServer({});
 	let encoding = 'utf-8';
 	let url = clientRequest.url;
+	refererDomain = getReferer(clientRequest.headers);
+
 	proxy.on('proxyRes', function(proxyRes) {
 		if (proxyRes.headers) {
-			proxyRes.headers['content-security-policy'] = 'frame-ancestors http://localhost:4000';
-			proxyRes.headers['x-frame-options'] = 'ALLOW-FROM http://localhost:4000';
+			proxyRes.headers['content-security-policy'] = `frame-ancestors ${refererDomain} ${proxyDomain}`;
+			proxyRes.headers['x-frame-options'] = `ALLOW-FROM ${refererDomain} ${proxyDomain}`;
 			proxyRes.headers['Access-Control-Allow-Origin'] = '*';
 			encoding = getEncoding(proxyRes.headers);
 		}
@@ -58,27 +90,14 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 			proxyRes.headers['location'] = `${proxyUrl}${location}`;
 			console.log(`MOVE TO LOCATION --> ${proxyUrl}${location}`);
 		}
-
-		const cookies = proxyRes.headers['set-cookie'];
-		if (cookies && cookies.length) {
-			for (let i = 0; i < cookies.length; i++) {
-				let cookie = cookies[i];
-				cookie = cookie.replace(/^(.*domain=)([^;]+)(;?.*)$/, '$1proxy.dev.test$3');
-				cookie = cookie.replace(/secure;?/, '');
-				cookies[i] = cookie;
-			}
-			proxyRes.headers['set-cookie'] = cookies;
-		}
-
-		delete proxyRes.headers['content-length'];
-		delete proxyRes.headers['alt-svc'];
-		delete proxyRes.headers['x-xss-protection'];
-		delete proxyRes.headers['vary'];
+		replaceCookie(proxyRes, domain);
+		deleteHeaders(proxyRes)
 	});
 	const target = getTarget(clientRequest);
 	if (target === proxyUrl) {
-		clientResponse.end(`target fail by url ${clientRequest.url}`);
-		console.log(`target fail by url ${clientRequest.url}`);
+		clientResponse.status(500);
+		clientResponse.end(`do proxy this site not allowed ${clientRequest.url}`);
+		console.log(`do proxy this site not allowed ${clientRequest.url}`);
 		return
 	}
 	console.log(`TARGET -> ${target}`);
