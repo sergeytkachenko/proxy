@@ -1,3 +1,5 @@
+const config = require('./config');
+
 class HtmlHelper {
 
 	static getAbsolutePath(currentUrl) {
@@ -20,7 +22,7 @@ class HtmlHelper {
 	}
 
 	static getBaseUrl(url) {
-		return `http://localhost:3000/${url}`;
+		return `${config.proxyUrl}${url}`;
 	}
 
 	static getProtocol(siteAbsoluteUrl) {
