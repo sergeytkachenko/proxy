@@ -1,4 +1,5 @@
 const config = require('./config');
+const proxyUrl = config.proxyUrl;
 
 class HtmlHelper {
 
@@ -29,6 +30,13 @@ class HtmlHelper {
 		return siteAbsoluteUrl.replace(/^(https?):\/\/.*$/, '$1');
 	}
 
+	static appendToHeaderResources(html) {
+		const scripts = `
+			<script src="${proxyUrl}inject-header.js" />
+			<link href="${proxyUrl}default.css" type="text/css" rel="stylesheet" />`;
+		return html.replace(/<\s*head\s*>/gi, `<head>${scripts}`);
+	}
+
 	static appendBaseTag(html, siteAbsoluteUrl) {
 		return html.replace(/<\s*head\s*>/gi, `<head><base href="${siteAbsoluteUrl}" />`);
 	}
@@ -36,6 +44,7 @@ class HtmlHelper {
 	static parseHtml(html, siteAbsoluteUrl, url) {
 		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(siteAbsoluteUrl));
 		html = HtmlHelper.appendBaseTag(html, siteAbsoluteUrl);
+		html = HtmlHelper.appendToHeaderResources(html);
 		html = HtmlHelper._replaceLinks(html, url);
 		html = HtmlHelper._replaceForms(html, url);
 		return html;
