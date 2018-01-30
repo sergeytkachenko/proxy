@@ -1,3 +1,5 @@
-body {
-	background-color: red !important;
+[selected-in-iframe] {
+	-webkit-box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
+	-moz-box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
+	box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
 }
