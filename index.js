@@ -2,10 +2,12 @@ const express = require('express');
 const app = express();
 const httpProxy = require('http-proxy');
 const Transform = require('stream').Transform;
+const HeaderHelper = require('./headers');
+const HtmlHelper = require('./html-helper');
 
 const proxyUrl = 'http://proxy.dev.test:3000/';
 
-const replace = require('buffer-replace');
+const iconv = require('iconv-lite');
 
 function getTarget(clietRequest) {
 	const url = clietRequest.url;
@@ -17,6 +19,15 @@ function getTarget(clietRequest) {
 	return referer.replace(targetPattern, "$1");
 }
 
+function getEncoding(headers) {
+	headers = HeaderHelper.toLowwer(headers);
+	const contentType = headers['content-type'];
+	if (!contentType) {
+		return 'utf-8';
+	}
+	return contentType.includes('charset=') && contentType.replace(/^(.*charset=)([a-z0-9-]+)$/i, '$2') || 'utf-8';
+}
+
 app.use(express.static('static'));
 
 app.get(/.*(\.css|\.js|\.png|\.jpg|\.jpeg|\.gif)$/, (clientRequest, clientResponse) => {
@@ -24,16 +35,17 @@ app.get(/.*(\.css|\.js|\.png|\.jpg|\.jpeg|\.gif)$/, (clientRequest, clientRespon
 	clientResponse.end('not found');
 });
 
-app.get(/^\/https?:/, (clientRequest, clientResponse) => {
+function mock(clientRequest, clientResponse) {
 	delete  clientRequest.headers['accept-encoding'];
-
 	const proxy = httpProxy.createProxyServer({});
-
-	proxy.on('proxyRes', function(proxyRes, req, res) {
+	let encoding = 'utf-8';
+	let url = clientRequest.url;
+	proxy.on('proxyRes', function(proxyRes) {
 		if (proxyRes.headers) {
 			proxyRes.headers['content-security-policy'] = 'frame-ancestors http://localhost:4000';
 			proxyRes.headers['x-frame-options'] = 'ALLOW-FROM http://localhost:4000';
 			proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+			encoding = getEncoding(proxyRes.headers);
 		}
 		const location = proxyRes.headers['location'];
 		if (location) {
@@ -42,21 +54,21 @@ app.get(/^\/https?:/, (clientRequest, clientResponse) => {
 		}
 
 		const cookies = proxyRes.headers['set-cookie'];
-		for (let i = 0; i < cookies.length; i++) {
-			let cookie = cookies[i];
-			cookie = cookie.replace(/^(.*domain=)([^;]+)(;?.*)$/, '$1proxy.dev.test$3');
-			cookie = cookie.replace(/secure;?/, '');
-			cookies[i] = cookie;
+		if (cookies && cookies.length) {
+			for (let i = 0; i < cookies.length; i++) {
+				let cookie = cookies[i];
+				cookie = cookie.replace(/^(.*domain=)([^;]+)(;?.*)$/, '$1proxy.dev.test$3');
+				cookie = cookie.replace(/secure;?/, '');
+				cookies[i] = cookie;
+			}
+			proxyRes.headers['set-cookie'] = cookies;
 		}
-
-		proxyRes.headers['set-cookie'] = cookies;
 
 		delete proxyRes.headers['content-length'];
 		delete proxyRes.headers['alt-svc'];
 		delete proxyRes.headers['x-xss-protection'];
 		delete proxyRes.headers['vary'];
 	});
-
 	const target = getTarget(clientRequest);
 	if (target === proxyUrl) {
 		clientResponse.end(`target fail by url ${clientRequest.url}`);
@@ -64,48 +76,84 @@ app.get(/^\/https?:/, (clientRequest, clientResponse) => {
 		return
 	}
 	console.log(`TARGET -> ${target}`);
-
 	clientRequest.url = clientRequest.url.replace(target, "");
 	console.log(`URL -> ${clientRequest.url}`);
 	proxy.web(clientRequest, clientResponse, {
 		target: target,
 		secure: false,
+		ws: false,
 		changeOrigin: true,
 		resTransformStream: new Transform({
-			transform(chunk, encoding, callback) {
-				let replaced = replace(chunk, '<head>', `<head><base href="${proxyUrl}${target}" /><script src="${proxyUrl}inject.js" />`);
-				replaced = replace(replaced, '="/', `="${target}/`);
-				replaced = replace(replaced, "='/", `='${target}/`);
-				replaced = replace(replaced, 'action="', `action="${proxyUrl}`);
-				replaced = replace(replaced, "action='", `action='${proxyUrl}`);
-				callback(null, replaced);
+			transform(chunk, en, callback) {
+				let html = iconv.decode(chunk, encoding);
+				html = HtmlHelper.parseHtml(html, target, url);
+				let buf = iconv.encode(html, encoding);
+				callback(null, buf);
 			}
 		})
 	});
+}
+
+app.get(/^\/https?:/, (clientRequest, clientResponse) => {
+	mock(clientRequest, clientResponse);
 });
 
 app.post(/^\/https?:/, (clientRequest, clientResponse) => {
-
+	delete  clientRequest.headers['accept-encoding'];
 	const proxy = httpProxy.createProxyServer({});
-
-	proxy.on('proxyRes', function(proxyRes, req, res) {
+	let encoding = 'utf-8';
+	let url = clientRequest.url;
+	proxy.on('proxyRes', function(proxyRes) {
 		if (proxyRes.headers) {
-			proxyRes.headers['Content-Security-Policy'] = 'frame-ancestors self http://localhost:4000';
+			proxyRes.headers['content-security-policy'] = 'frame-ancestors http://localhost:4000';
+			proxyRes.headers['x-frame-options'] = 'ALLOW-FROM http://localhost:4000';
+			proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+			encoding = getEncoding(proxyRes.headers);
 		}
 		const location = proxyRes.headers['location'];
 		if (location) {
 			proxyRes.headers['location'] = `${proxyUrl}${location}`;
 			console.log(`MOVE TO LOCATION --> ${proxyUrl}${location}`);
 		}
-		delete proxyRes.headers['content-length'];
-	});
 
+		const cookies = proxyRes.headers['set-cookie'];
+		if (cookies && cookies.length) {
+			for (let i = 0; i < cookies.length; i++) {
+				let cookie = cookies[i];
+				cookie = cookie.replace(/^(.*domain=)([^;]+)(;?.*)$/, '$1proxy.dev.test$3');
+				cookie = cookie.replace(/secure;?/, '');
+				cookies[i] = cookie;
+			}
+			proxyRes.headers['set-cookie'] = cookies;
+		}
+
+		delete proxyRes.headers['content-length'];
+		delete proxyRes.headers['alt-svc'];
+		delete proxyRes.headers['x-xss-protection'];
+		delete proxyRes.headers['vary'];
+	});
 	const target = getTarget(clientRequest);
+	if (target === proxyUrl) {
+		clientResponse.end(`target fail by url ${clientRequest.url}`);
+		console.log(`target fail by url ${clientRequest.url}`);
+		return
+	}
+	console.log(`TARGET -> ${target}`);
 	clientRequest.url = clientRequest.url.replace(target, "");
+	console.log(`URL -> ${clientRequest.url}`);
 	proxy.web(clientRequest, clientResponse, {
 		target: target,
 		secure: false,
 		changeOrigin: true,
+		ws: false,
+		resTransformStream: new Transform({
+			transform(chunk, en, callback) {
+				let html = iconv.decode(chunk, encoding);
+				html = HtmlHelper.parseHtml(html, target, url);
+				let buf = iconv.encode(html, encoding);
+				callback(null, buf);
+			}
+		})
 	});
 });
 
