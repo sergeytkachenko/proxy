@@ -32,7 +32,7 @@ class HtmlHelper {
 
 	static appendToHeaderResources(html) {
 		const scripts = `
-			<script src="${proxyUrl}inject-header.js" />
+			<script src="${proxyUrl}inject-header.js"></script>
 			<link href="${proxyUrl}default.css" type="text/css" rel="stylesheet" />`;
 		return html.replace(/<\s*head\s*>/gi, `<head>${scripts}`);
 	}
