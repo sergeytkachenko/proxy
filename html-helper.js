@@ -1,5 +1,6 @@
 const config = require('./config');
 const proxyUrl = config.proxyUrl;
+const aliasOfRootPath = config.aliasOfRootPath;
 
 class HtmlHelper {
 
@@ -32,8 +33,8 @@ class HtmlHelper {
 
 	static appendToHeaderResources(html) {
 		const scripts = `
-			<script src="${proxyUrl}inject-header.js"></script>
-			<link href="${proxyUrl}default.css" type="text/css" rel="stylesheet" />`;
+			<script src="${proxyUrl}${aliasOfRootPath}/inject-header.js"></script>
+			<link href="${proxyUrl}${aliasOfRootPath}/default.css" type="text/css" rel="stylesheet" />`;
 		return html.replace(/<\s*head\s*>/gi, `<head>${scripts}`);
 	}
 
