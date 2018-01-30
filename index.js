@@ -86,6 +86,7 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 			proxyRes.headers['content-security-policy'] = `frame-ancestors ${refererDomain} ${proxyDomain}`;
 			proxyRes.headers['x-frame-options'] = `ALLOW-FROM ${refererDomain} ${proxyDomain}`;
 			proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+			proxyRes.headers['cache-control'] = 'no-cache, no-store, must-revalidate';
 			encoding = getEncoding(proxyRes.headers);
 		}
 		const location = proxyRes.headers['location'];
