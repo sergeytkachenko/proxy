@@ -41,6 +41,9 @@ function getEncoding(headers) {
 function getReferer(headers) {
 	headers = HeaderHelper.toLower(headers);
 	let referer = headers.referer;
+	if (!referer) {
+		return headers.host;
+	}
 	return referer.replace(/^(https?:\/\/)([^/]+).*$/, '$2');
 }
 
