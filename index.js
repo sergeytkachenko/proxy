@@ -75,6 +75,7 @@ app.get(/.*(\.css|\.js|\.png|\.jpg|\.jpeg|\.gif)$/, (clientRequest, clientRespon
 });
 
 app.all(/^\/https?:/, (clientRequest, clientResponse) => {
+	clientRequest.headers['cache-control'] = 'no-cache, no-store, must-revalidate';
 	delete clientRequest.headers['accept-encoding'];
 	const proxy = httpProxy.createProxyServer({});
 	let encoding = 'utf-8';
