@@ -1,6 +1,5 @@
 const config = require('./config');
 const proxyUrl = config.proxyUrl;
-const aliasOfRootPath = config.aliasOfRootPath;
 
 class HtmlHelper {
 
