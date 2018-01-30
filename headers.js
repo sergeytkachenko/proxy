@@ -1,6 +1,6 @@
 class Headers {
 
-	static toLowwer(headers) {
+	static toLower(headers) {
 		const lowerHeaders = {};
 		for (let key in headers) {
 			if (headers.hasOwnProperty(key)) {
