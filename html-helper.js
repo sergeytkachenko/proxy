@@ -35,7 +35,7 @@ class HtmlHelper {
 		const scripts = `
 			<script src="${proxyUrl}proxy-static/inject-header.js"></script>
 			<link href="${proxyUrl}proxy-static/default.css" type="text/css" rel="stylesheet" />`;
-		return html.replace(/<\s*head\s*>/gi, `<head>${scripts}`);
+		return html.replace(/<\s*head[^>]*>/gi, `<head>${scripts}`);
 	}
 
 	static removeLinkTarget(html) {
@@ -44,7 +44,7 @@ class HtmlHelper {
 	}
 
 	static appendBaseTag(html, siteAbsoluteUrl) {
-		return html.replace(/<\s*head\s*>/gi, `<head><base href="${siteAbsoluteUrl}" />`);
+		return html.replace(/<\s*head[^>]*>/gi, `<head><base href="${siteAbsoluteUrl}" />`);
 	}
 
 	static parseHtml(html, siteAbsoluteUrl, url) {
