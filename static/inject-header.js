@@ -1,6 +1,6 @@
-var scraperFn = XMLHttpRequest.prototype.open.toString();
+var scraperFn = XMLHttpRequest.prototype.open;
 var siteRealUrl = location.pathname.replace(/^\/(https?:\/\/?)([^/]+).*$/, '$1/$2');
-
+debugger
 if (scraperFn.toString().indexOf('checkNeedPrototype') === -1) {
 	XMLHttpRequest.prototype.open = function(method, path, p) {
 		var checkNeedPrototype;
@@ -13,8 +13,7 @@ if (scraperFn.toString().indexOf('checkNeedPrototype') === -1) {
 		// 	path = siteRealUrl + path;
 		// }
 		// console.log(path);
-		eval(scraperFn)(method, `/${path}`, p);
-		// scraperFn.call(this, method, `/${path}`, p);
+		scraperFn.call(this, method, `/${path}`, p);
 	};
 }
 
