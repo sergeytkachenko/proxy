@@ -38,6 +38,11 @@ class HtmlHelper {
 		return html.replace(/<\s*head\s*>/gi, `<head>${scripts}`);
 	}
 
+	static removeLinkTarget(html) {
+		const targetPattern = /target=('|")[^"']+('|")/gi;
+		return html.replace(targetPattern, '');
+	}
+
 	static appendBaseTag(html, siteAbsoluteUrl) {
 		return html.replace(/<\s*head\s*>/gi, `<head><base href="${siteAbsoluteUrl}" />`);
 	}
@@ -48,6 +53,7 @@ class HtmlHelper {
 		html = HtmlHelper.appendToHeaderResources(html);
 		html = HtmlHelper._replaceLinks(html, url);
 		html = HtmlHelper._replaceForms(html, url);
+		html = HtmlHelper.removeLinkTarget(html);
 		return html;
 	}
 
