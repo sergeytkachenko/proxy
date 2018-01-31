@@ -34,7 +34,7 @@ class HtmlHelper {
 		const scripts = `<base href="${siteAbsoluteUrl}" />
 			<script src="${proxyUrl}proxy-static/inject-header.js"></script>
 			<link href="${proxyUrl}proxy-static/default.css" type="text/css" rel="stylesheet" />`;
-		return html.replace(/<\s*head[^>]*>/gi, `<head>${scripts}`);
+		return html.replace(/<head>/gi, `<head>${scripts}`);
 	}
 
 	static removeLinkTarget(html) {
