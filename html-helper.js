@@ -1,4 +1,6 @@
 const config = require('./config');
+const sites = require('./sites');
+
 const proxyUrl = config.proxyUrl;
 
 class HtmlHelper {
@@ -48,6 +50,7 @@ class HtmlHelper {
 		html = HtmlHelper._replaceLinks(html, url);
 		html = HtmlHelper._replaceForms(html, url);
 		html = HtmlHelper.removeLinkTarget(html);
+		html = HtmlHelper.replaceSiteSpecified(html, url);
 		return html;
 	}
 
@@ -93,6 +96,16 @@ class HtmlHelper {
 			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
 		});
 		return html
+	}
+
+	static replaceSiteSpecified(html, siteUrl) {
+		const domains = Object.keys(sites);
+		const domain = domains.find(domain => siteUrl.contains(domain));
+		if (!domain) {
+			return html;
+		}
+		const site = domains[domain];
+		return site.run(html);
 	}
 }
 
