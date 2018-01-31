@@ -30,8 +30,8 @@ class HtmlHelper {
 		return siteAbsoluteUrl.replace(/^(https?):\/\/.*$/, '$1');
 	}
 
-	static appendToHeaderResources(html) {
-		const scripts = `
+	static appendToHeaderResources(html, siteAbsoluteUrl) {
+		const scripts = `<base href="${siteAbsoluteUrl}" />
 			<script src="${proxyUrl}proxy-static/inject-header.js"></script>
 			<link href="${proxyUrl}proxy-static/default.css" type="text/css" rel="stylesheet" />`;
 		return html.replace(/<\s*head[^>]*>/gi, `<head>${scripts}`);
@@ -42,17 +42,12 @@ class HtmlHelper {
 		return html.replace(targetPattern, '');
 	}
 
-	static appendBaseTag(html, siteAbsoluteUrl) {
-		return html.replace(/<\s*head[^>]*>/gi, `<head><base href="${siteAbsoluteUrl}" />`);
-	}
-
 	static parseHtml(html, siteAbsoluteUrl, url) {
 		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(siteAbsoluteUrl));
-		html = HtmlHelper.appendBaseTag(html, siteAbsoluteUrl);
-		html = HtmlHelper.appendToHeaderResources(html);
+		html = HtmlHelper.appendToHeaderResources(html, siteAbsoluteUrl);
 		html = HtmlHelper._replaceLinks(html, url);
 		html = HtmlHelper._replaceForms(html, url);
-		// html = HtmlHelper.removeLinkTarget(html);
+		html = HtmlHelper.removeLinkTarget(html);
 		return html;
 	}
 
