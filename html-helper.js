@@ -52,7 +52,7 @@ class HtmlHelper {
 		html = HtmlHelper.appendToHeaderResources(html);
 		html = HtmlHelper._replaceLinks(html, url);
 		html = HtmlHelper._replaceForms(html, url);
-		html = HtmlHelper.removeLinkTarget(html);
+		// html = HtmlHelper.removeLinkTarget(html);
 		return html;
 	}
 
