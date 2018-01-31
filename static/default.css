@@ -2,8 +2,8 @@
 	-webkit-box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
 	-moz-box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
 	box-shadow: inset 0px 0px 0px 1px rgba(255,0,13,1) !important;
-	background-color: coral;
-	color: #fff;
+	background-color: gray !important;
+	color: #fff !important;
 }
 
 body {
