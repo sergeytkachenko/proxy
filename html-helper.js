@@ -100,12 +100,12 @@ class HtmlHelper {
 
 	static replaceSiteSpecified(html, siteUrl) {
 		const domains = Object.keys(sites);
-		const domain = domains.find(domain => siteUrl.contains(domain));
+		const domain = domains.find(domain => siteUrl.includes(domain));
 		if (!domain) {
 			return html;
 		}
-		const site = domains[domain];
-		return site.run(html);
+		const site = sites[domain];
+		return site.replace(html);
 	}
 }
 
