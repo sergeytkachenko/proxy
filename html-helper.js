@@ -98,8 +98,10 @@ class HtmlHelper {
 				return find;
 			}
 			if (HtmlHelper._isAbsoluteLink(link)) {
-				link = `${baseUrl}${absolutePath}${link}`;
+				return find;
 			}
+			link = `/${absolutePath}${link}`;
+			link = link.replace(/([^:])\/\//g, '$1/');
 			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
 		});
 		return html

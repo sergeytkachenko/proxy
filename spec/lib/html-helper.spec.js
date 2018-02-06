@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const cheerio = require('cheerio');
 const HtmlHelper = require('../../html-helper');
 let html = fs.readFileSync(path.resolve(__dirname + '/torrent.site.org.html')).toString();
 
@@ -44,7 +45,8 @@ describe("HtmlHelper", () => {
 
 
     it("parseHtml replace action in forms", function() {
-        expect(resultHtml).toContain('<form action="http://torrent.site.org/do.php"></form>');
-        expect(resultHtml).toContain('<form action="http://torrent.site.org/work.php"></form>');
+	    const $ = cheerio.load(resultHtml);
+        expect($('form#do').attr('action')).toBe('/http://torrent.site.org/do.php');
+        expect($('form#work').attr('action')).toBe('/http://torrent.site.org/work.php');
     });
 });
