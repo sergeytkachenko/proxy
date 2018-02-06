@@ -5,15 +5,15 @@ const proxyUrl = config.proxyUrl;
 
 class HtmlHelper {
 
-	static getAbsolutePath(currentUrl) {
+	static _getAbsolutePath(currentUrl) {
 		return currentUrl.replace(/^\/?(.*\/)([^/]*)$/g, '$1');
 	}
 
-	static isRelativeLink (link) {
-		return !/^(\/\/|https?:\/\/)/.test(link);
+	static _isAbsoluteLink (link) {
+		return /^(\/\/|https?:\/\/)/.test(link);
 	}
 
-	static isStaticLink(link) {
+	static _isStaticLink(link) {
 		const statics = ['.js', '.css', '.less', '.sass', '.jpeg', '.jpg', '.png', '.xml', '.gif', '.jsonp', '.svg'];
 		for (let key in statics) {
 			let ext = statics[key];
@@ -45,37 +45,44 @@ class HtmlHelper {
 	}
 
 	static parseHtml(html, siteAbsoluteUrl, url) {
-		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(siteAbsoluteUrl));
-		html = HtmlHelper.appendToHeaderResources(html, siteAbsoluteUrl);
-		html = HtmlHelper._replaceLinks(html, url);
+        html = HtmlHelper._replaceRelativeToAbsoluteLinks(html, url);
+		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(siteAbsoluteUrl), url);
 		html = HtmlHelper._replaceForms(html, url);
+        html = HtmlHelper.appendToHeaderResources(html, siteAbsoluteUrl);
 		html = HtmlHelper.removeLinkTarget(html);
 		html = HtmlHelper.replaceSiteSpecified(html, url);
 		return html;
 	}
 
-	static _replaceAbsoluteUrl(html, protocol) {
-		const baseUrl = HtmlHelper.getBaseUrl('');
-		html = html.replace(/('|")(https?:\/\/|\/\/)([^'"]+)('|")/gi, (find, quoteFirst, p, link, quiteLast) => {
-			if (HtmlHelper.isStaticLink(link)) {
+	static _replaceAbsoluteUrl(html, protocol, url) {
+		html = html.replace(/('|")(https?:\/\/)([^'"]+)('|")/gi, (find, quoteFirst, p, link, quiteLast) => {
+			if (HtmlHelper._isStaticLink(link)) {
 				return find;
 			}
-			return `${quoteFirst}${baseUrl}${protocol}://${link}${quoteFirst}`;
+			return `${quoteFirst}/${protocol}://${link}${quoteFirst}`;
 		});
+        const absolutePath = HtmlHelper._getAbsolutePath(url);
+        html = html.replace(/('|")(\/\/)([^'"]+)('|")/gi, (find, quoteFirst, p, link, quiteLast) => {
+            if (HtmlHelper._isStaticLink(link)) {
+                return find;
+            }
+            return `${quoteFirst}/${absolutePath}${link}${quoteFirst}`;
+        });
 		return html
 	}
 
-	static _replaceLinks(html, url) {
-		const baseUrl = HtmlHelper.getBaseUrl('');
-		const absolutePath = HtmlHelper.getAbsolutePath(url);
+	static _replaceRelativeToAbsoluteLinks(html, url) {
+		const absolutePath = HtmlHelper._getAbsolutePath(url);
 		const linkPattern = /(<\s*a\s+[^>]*href=)('|")([^>'"]*)('|")([^>]*>)/ig
 		html = html.replace(linkPattern, (find, a, quoteFirst, link, quiteLast, attributes) => {
-			if (HtmlHelper.isStaticLink(link)) {
+			if (HtmlHelper._isStaticLink(link)) {
 				return find;
 			}
-			if (HtmlHelper.isRelativeLink(link)) {
-				link = `${baseUrl}${absolutePath}${link}`;
+			if (HtmlHelper._isAbsoluteLink(link)) {
+				return find;
 			}
+            link = `/${absolutePath}${link}`;
+            link = link.replace(/([^:])\/\//g, '$1/');
 			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
 		});
 		return html
@@ -84,13 +91,13 @@ class HtmlHelper {
 
 	static _replaceForms(html, url) {
 		const baseUrl = HtmlHelper.getBaseUrl('');
-		const absolutePath = HtmlHelper.getAbsolutePath(url);
+		const absolutePath = HtmlHelper._getAbsolutePath(url);
 		const linkPattern = /(<\s*form\s+[^>]*action=)('|")([^>'"]*)('|")([^>]*>)/ig
 		html = html.replace(linkPattern, (find, a, quoteFirst, link, quiteLast, attributes) => {
-			if (HtmlHelper.isStaticLink(link)) {
+			if (HtmlHelper._isStaticLink(link)) {
 				return find;
 			}
-			if (HtmlHelper.isRelativeLink(link)) {
+			if (HtmlHelper._isAbsoluteLink(link)) {
 				link = `${baseUrl}${absolutePath}${link}`;
 			}
 			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
