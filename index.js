@@ -7,6 +7,10 @@ const Transform = require('stream').Transform;
 const HeaderHelper = require('./headers');
 const HtmlHelper = require('./html-helper');
 
+const PORT = 3000;
+const HOST = '0.0.0.0';
+
+
 const config = require('./config');
 const proxyUrl = config.proxyUrl;
 const domain = config.domain;
@@ -127,4 +131,4 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 	});
 });
 
-app.listen(3000, 'localhost');
+app.listen(PORT, HOST);
