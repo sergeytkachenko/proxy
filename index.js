@@ -8,7 +8,7 @@ const HeaderHelper = require('./headers');
 const HtmlHelper = require('./html-helper');
 
 const PORT = 3000;
-const HOST = '0.0.0.0';
+const HOST = '127.0.0.1';
 
 
 const config = require('./config');
@@ -131,4 +131,6 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 	});
 });
 
-app.listen(PORT, HOST);
+app.listen(PORT, () => {
+	console.log('Listening on port '+ process.env.SERVER_PORT);
+});
