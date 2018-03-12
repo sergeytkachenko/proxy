@@ -6,11 +6,15 @@ const proxyUrl = config.proxyUrl;
 class HtmlHelper {
 
 	static _getAbsolutePath(currentUrl) {
-		return currentUrl.replace(/^\/?(.*\/)([^/]*)$/g, '$1');
+		currentUrl = currentUrl.replace(/^\/?(.*\/?)([^/]*)$/g, '$1');
+		if (currentUrl.endsWith('/')) {
+			return currentUrl;
+		}
+		return `${currentUrl}/`;
 	}
 
 	static _isAbsoluteLink (link) {
-		return /^(\/\/|https?:\/\/)/.test(link);
+		return /^(https?:\/\/)/.test(link);
 	}
 
 	static _isStaticLink(link) {
@@ -44,66 +48,42 @@ class HtmlHelper {
 		return html.replace(targetPattern, '');
 	}
 
-	static parseHtml(html, siteAbsoluteUrl, url) {
-        html = HtmlHelper._replaceRelativeToAbsoluteLinks(html, url);
-		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(siteAbsoluteUrl), url);
-		html = HtmlHelper._replaceForms(html, url);
-        html = HtmlHelper.appendToHeaderResources(html, siteAbsoluteUrl);
+	static parseHtml(html, target, clientRequestUrl) {
+        html = HtmlHelper._replaceRelativeToAbsoluteLinks(html, target);
+		html = HtmlHelper._replaceAbsoluteUrl(html, HtmlHelper.getProtocol(target), clientRequestUrl);
+        html = HtmlHelper.appendToHeaderResources(html, target);
 		html = HtmlHelper.removeLinkTarget(html);
-		html = HtmlHelper.replaceSiteSpecified(html, url);
+		html = HtmlHelper.replaceSiteSpecified(html, clientRequestUrl);
 		return html;
 	}
 
-	static _replaceAbsoluteUrl(html, protocol, url) {
-		html = html.replace(/('|")(https?:\/\/)([^'"]+)('|")/gi, (find, quoteFirst, p, link, quiteLast) => {
-			if (HtmlHelper._isStaticLink(link)) {
-				return find;
-			}
-			return `${quoteFirst}/${protocol}://${link}${quoteFirst}`;
+	static replaceLinks(html, clientRequestUrl) {
+		html = HtmlHelper._replaceRelativeToAbsoluteLinks(html, clientRequestUrl);
+		html = HtmlHelper._replaceAbsoluteUrl(html);
+		return html;
+	}
+
+	static _replaceAbsoluteUrl(html) {
+		html = html.replace(/=\s*('|")(https?:\/\/)([^'"]+)('|")/gi, (find, quote, protocol, link) => {
+			return `=${quote}${proxyUrl}${protocol}${link}${quote}`;
 		});
-        const absolutePath = HtmlHelper._getAbsolutePath(url);
-        html = html.replace(/('|")(\/\/)([^'"]+)('|")/gi, (find, quoteFirst, p, link, quiteLast) => {
-            if (HtmlHelper._isStaticLink(link)) {
-                return find;
-            }
-            return `${quoteFirst}/${absolutePath}${link}${quoteFirst}`;
-        });
 		return html
 	}
 
-	static _replaceRelativeToAbsoluteLinks(html, url) {
-		const absolutePath = HtmlHelper._getAbsolutePath(url);
+	static _replaceRelativeToAbsoluteLinks(html, target) {
+		const absolutePath = HtmlHelper._getAbsolutePath(target);
 		const linkPattern = /(<\s*a\s+[^>]*href=)('|")([^>'"]*)('|")([^>]*>)/ig
-		html = html.replace(linkPattern, (find, a, quoteFirst, link, quiteLast, attributes) => {
-			if (HtmlHelper._isStaticLink(link)) {
-				return find;
-			}
+		const formPattern = /(<\s*form\s+[^>]*action=)('|")([^>'"]*)('|")([^>]*>)/ig
+		const fn = (find, a, quoteFirst, link, quiteLast, attributes) => {
 			if (HtmlHelper._isAbsoluteLink(link)) {
 				return find;
 			}
-            link = `/${absolutePath}${link}`;
-            link = link.replace(/([^:])\/\//g, '$1/');
+			link = link.replace(/^\/\/?/, '');
+			link = `${absolutePath}${link}`;
 			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
-		});
-		return html
-	}
-
-
-	static _replaceForms(html, url) {
-		const baseUrl = HtmlHelper.getBaseUrl('');
-		const absolutePath = HtmlHelper._getAbsolutePath(url);
-		const linkPattern = /(<\s*form\s+[^>]*action=)('|")([^>'"]*)('|")([^>]*>)/ig
-		html = html.replace(linkPattern, (find, a, quoteFirst, link, quiteLast, attributes) => {
-			if (HtmlHelper._isStaticLink(link)) {
-				return find;
-			}
-			if (HtmlHelper._isAbsoluteLink(link)) {
-				return find;
-			}
-			link = `/${absolutePath}${link}`;
-			link = link.replace(/([^:])\/\//g, '$1/');
-			return `${a}${quoteFirst}${link}${quiteLast}${attributes}`;
-		});
+		};
+		html = html.replace(linkPattern, fn);
+		html = html.replace(formPattern, fn);
 		return html
 	}
 

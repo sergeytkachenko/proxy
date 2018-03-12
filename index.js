@@ -83,7 +83,7 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 	delete clientRequest.headers['accept-encoding'];
 	const proxy = httpProxy.createProxyServer({});
 	let encoding = 'utf-8';
-	let url = clientRequest.url;
+	let clientRequestUrl = clientRequest.url;
 	refererDomain = getReferer(clientRequest.headers);
 
 	proxy.on('proxyRes', function(proxyRes) {
@@ -120,7 +120,7 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 		resTransformStream: new Transform({
 			transform(chunk, en, callback) {
 				let html = iconv.decode(chunk, encoding);
-				html = HtmlHelper.parseHtml(html, target, url);
+				html = HtmlHelper.parseHtml(html, target, clientRequestUrl);
 				let buf = iconv.encode(html, encoding);
 				callback(null, buf);
 			}
