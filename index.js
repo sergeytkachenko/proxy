@@ -9,7 +9,7 @@ const HtmlHelper = require('./html-helper');
 
 const PORT = 3000;
 const HOST = '0.0.0.0';
-
+const allowDomains = ['localhost:3000', 'localhost:4000', 'elasticdata.io', 'elasticdata.io:443', 'elasticdata.io:81'];
 
 const config = require('./config');
 const proxyUrl = config.proxyUrl;
@@ -88,8 +88,8 @@ app.all(/^\/https?:/, (clientRequest, clientResponse) => {
 
 	proxy.on('proxyRes', function(proxyRes) {
 		if (proxyRes.headers) {
-			proxyRes.headers['content-security-policy'] = `frame-ancestors ${refererDomain} ${proxyDomain}`;
-			proxyRes.headers['x-frame-options'] = `ALLOW-FROM ${refererDomain} ${proxyDomain}`;
+			proxyRes.headers['content-security-policy'] = `frame-ancestors ${allowDomains.join(' ')}`;
+			proxyRes.headers['x-frame-options'] = `ALLOW-FROM ${allowDomains.join(' ')}`;
 			proxyRes.headers['Access-Control-Allow-Origin'] = '*';
 			proxyRes.headers['cache-control'] = 'no-cache, no-store, must-revalidate';
 			encoding = getEncoding(proxyRes.headers);
