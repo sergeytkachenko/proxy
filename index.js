@@ -29,7 +29,7 @@ function getTarget(request) {
 	if (targetPattern.test(url)) {
 		return url.replace(targetPattern, "$1");
 	}
-	const referer = request.headers.referer;
+	const referer = request.headers.referer || request.url;
 	return referer.replace(targetPattern, "$1");
 }
 
